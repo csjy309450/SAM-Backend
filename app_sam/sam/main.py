@@ -1,3 +1,4 @@
+import sys
 from wsgiref.simple_server import make_server
 from pyramid.config import Configurator
 from sam.view_layer.view_hello_world import ViewHelloWorld
@@ -5,8 +6,10 @@ from sam.view_layer.view_login import ViewLogin
 from sam.view_layer.view_perf import ViewPerf
 from sam.view_layer.view_exception_base import ViewExceptionBase
 import sam.model_layer.model
+import sam.common.util_tasks
 
-if __name__ == '__main__':
+
+def main():
     with Configurator() as config:
         config.add_route('hello', '/sam/api/hello')
         config.add_route('login_account', '/sam/api/login/account')
@@ -23,5 +26,12 @@ if __name__ == '__main__':
 
         config.add_exception_view(ViewExceptionBase, attr='handle_exception', renderer='json')
         app = config.make_wsgi_app()
-    server = make_server('0.0.0.0', 6543, app)
+    if sys.argv[1] == 'dev':
+        server = make_server('0.0.0.0', 6544, app)
+    else:
+        server = make_server('0.0.0.0', 6543, app)
     server.serve_forever()
+
+
+if __name__ == '__main__':
+    main()

@@ -16,10 +16,11 @@ class JsonObjBase(object):
 
 
 class ResBase(JsonObjBase):
-    def __init__(self, errorCode):
+    def __init__(self, errorCode, data=None):
         super(ResBase, self).__init__()
         self.errorCode = errorCode
         self.errorMessage = g_error_code.get(errorCode, 1)['en']
+        self.data = data
 
 
 class ResLoadInfo(JsonObjBase):
@@ -69,12 +70,12 @@ class ResNetInfo(JsonObjBase):
         self.net_io_rate = net_io_rate
 
 
-class ResPerfInfo(ResBase):
-    def __init__(self, errorCode,
+class ResPerfInfo(JsonObjBase):
+    def __init__(self,
                  host_run_time='', host_idle_rate=0, login_user_count=0,
                  load_info=ResLoadInfo(), proc_info=ResProcInfo(), cpu_info=ResCpuInfo(),
                  memory_info=ResMemoryInfo(), disk_info=ResDiskInfo(), net_info=ResNetInfo()):
-        super(ResPerfInfo, self).__init__(errorCode)
+        super(ResPerfInfo, self).__init__()
         self.host_run_time = host_run_time
         self.host_idle_rate = host_idle_rate
         self.login_user_count = login_user_count
