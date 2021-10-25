@@ -23,6 +23,14 @@ class ResBase(JsonObjBase):
         self.data = data
 
 
+class ResPerfConfig(JsonObjBase):
+    def __init__(self, on_off=None, sampling_rate=None, storage_time=None):
+        super(ResPerfConfig, self).__init__()
+        self.on_off = on_off
+        self.sampling_rate = sampling_rate
+        self.storage_time = storage_time
+
+
 class ResLoadInfo(JsonObjBase):
     def __init__(self, level=0, one_min=[], five_min=[], fiften_min=[]):
         super(ResLoadInfo, self).__init__()

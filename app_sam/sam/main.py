@@ -15,6 +15,7 @@ def main():
         config.add_route('login_account', '/sam/api/login/account')
         config.add_route('login_outLogin', '/sam/api/login/outLogin')
         config.add_route('perf_info', '/sam/api/perf/info')
+        config.add_route('perf_config', '/sam/api/perf/config')
 
         config.add_view(ViewHelloWorld, attr='get_hello', route_name='hello', request_method='GET', renderer='json')
         config.add_view(ViewLogin, attr='post_login_account', route_name='login_account', request_method='POST',
@@ -22,6 +23,10 @@ def main():
         config.add_view(ViewLogin, attr='get_login_outLogin', route_name='login_outLogin', request_method='GET',
                         renderer='json')
         config.add_view(ViewPerf, attr='get_perf_info', route_name='perf_info', request_method='GET',
+                        renderer='json')
+        config.add_view(ViewPerf, attr='post_perf_config', route_name='perf_config', request_method='POST',
+                        renderer='json')
+        config.add_view(ViewPerf, attr='get_perf_config', route_name='perf_config', request_method='GET',
                         renderer='json')
 
         config.add_exception_view(ViewExceptionBase, attr='handle_exception', renderer='json')
