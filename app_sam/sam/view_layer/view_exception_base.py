@@ -1,5 +1,5 @@
 import traceback
-from sam.common.res_base import ResBase, STATUS_KNOWN
+from sam.common.res_obj import ResBase, STATUS_KNOWN
 
 class ViewExceptionBase(Exception):
     def __init__(self, request):

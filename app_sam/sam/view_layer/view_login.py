@@ -1,7 +1,7 @@
 import json
 from pyramid.response import Response
 from sam.view_layer.view_base import ViewBase
-from sam.common.res_base import ResBase
+from sam.common.res_obj import ResBase
 
 
 class ResLogin(ResBase):

@@ -1,5 +1,5 @@
 import os
-from sam.common.res_base import *
+from sam.common.res_obj import *
 
 
 class UtilPerfLinux:
@@ -225,7 +225,7 @@ class UtilPerfLinux:
         return 60
 
     def get_test_perf_info(self) -> ResPerfInfo:
-        return ResPerfInfo(0, host_run_time='13h:14m:41s', host_idle_rate=60, login_user_count=3,
+        perf_info = ResPerfInfo(host_run_time='13h:14m:41s', host_idle_rate=60, login_user_count=3,
                            load_info=ResLoadInfo(level=1, one_min=[150, 230, 102, 218, 567, 147, 260],
                                                  five_min=[150, 230, 102, 218, 567, 147, 260],
                                                  fiften_min=[150, 230, 102, 218, 567, 147, 260]),
@@ -267,3 +267,4 @@ class UtilPerfLinux:
                                    ["xxx2", [192, 2919, 291], [192, 2919, 291]]
                                ])
                            )
+        return ResBase(0, data=perf_info)

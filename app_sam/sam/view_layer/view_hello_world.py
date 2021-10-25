@@ -1,7 +1,7 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from sam.view_layer.view_base import ViewBase
-from sam.common.res_base import ResBase
+from sam.common.res_obj import ResBase
 
 
 class ResHello(ResBase):
