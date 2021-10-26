@@ -114,12 +114,6 @@ class ImmediateTaskQueue:
         ImmediateTaskQueue.__task_list.append((fn, args, argv))
 
 
-__immediate_task_queue = ImmediateTaskQueue()
-ImmediateTaskQueue.start()
-__schedular_task_queue = SchedulerTaskQueue()
-SchedulerTaskQueue.start()
-
-
 def test_ImmediateTaskQueue():
     def test_fn(a):
         print(a)

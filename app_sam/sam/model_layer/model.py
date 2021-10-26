@@ -4,10 +4,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean
 
 engine = create_engine('sqlite:///sam.db', echo=True)
-
+Session = sessionmaker(bind=engine)  # create session
 Base = declarative_base()
-
-Session = sessionmaker(bind=engine) #创建session
 
 
 class PerfConfig(Base):
@@ -19,11 +17,31 @@ class PerfConfig(Base):
     value_str = Column(String)
 
 
-class PerfSingleValues(Base):
-    __tablename__ = 'sam_perf_single_values'
-    id = Column(Integer, primary_key=True)
-    key = Column(String, unique=True)
-    value = Column(String)
+SUMMARY_KEY_HOST_RUN_TIME = 'HOST_RUN_TIME'
+SUMMARY_KEY_HOST_IDLE_TIME = 'HOST_IDLE_TIME'
+SUMMARY_KEY_LOGIN_USER_COUNT = 'LOGIN_USER_COUNT'
+SUMMARY_KEY_LOAD_LEVE = 'LOAD_LEVE'
+SUMMARY_KEY_PROC_COUNT = 'PROC_COUNT'
+SUMMARY_KEY_CPU_COUNT = 'CPU_COUNT'
+SUMMARY_KEY_MEMORY_SIZE = 'MEMORY_SIZE'
+SUMMARY_KEY_SWAP_SIZE = 'SWAP_SIZE'
+SUMMARY_KEY_DISK_SIZE = 'DISK_SIZE'
+SUMMARY_KEY_DISK_USAGE = 'DISK_USAGE'
+
+
+class PerfSummaryValues(Base):
+    __tablename__ = 'sam_perf_summary_values'
+    key = Column(String, primary_key=True)
+    value_int = Column(Integer)
+    value_float = Column(Float)
+    value_str = Column(String)
+    
+
+class PerfSummaryHistory(Base):
+    __tablename__ = 'sam_perf_summary_history'
+    date = Column(DateTime, primary_key=True, unique=True)
+    proc_count = Column(Integer)
+    login_user_count = Column(Integer)
 
 
 class PerfLoadsHistory(Base):
@@ -53,6 +71,14 @@ class PerfProcStatDistributionHistory(Base):
     L = Column(Integer, default=0)
     thx_father = Column(Integer, default=0)
     multi_thx = Column(Integer, default=0)
+
+
+class PerfProcUserDistributionHistory(Base):
+    __tablename__ = 'sam_perf_proc_user_history'
+    id = Column(Integer, primary_key=True)
+    date = Column(DateTime)
+    user_name = Column(String, nullable=False)
+    proc_count = Column(Integer, default=0)
 
 
 class PerfCpuUsageRateHistory(Base):
@@ -92,4 +118,3 @@ class PerfNetIoRateHistory(Base):
     write_rate = Column(Float, default=0)
 
 
-Base.metadata.create_all(engine)

@@ -6,7 +6,7 @@ from sam.view_layer.view_login import ViewLogin
 from sam.view_layer.view_perf import ViewPerf
 from sam.view_layer.view_exception_base import ViewExceptionBase
 import sam.model_layer.model
-import sam.common.util_tasks
+from sam.common.global_ctl import GlobalCtl
 
 
 def main():
@@ -35,6 +35,7 @@ def main():
         server = make_server('0.0.0.0', 6544, app)
     else:
         server = make_server('0.0.0.0', 6543, app)
+    GlobalCtl.init()
     server.serve_forever()
 
 

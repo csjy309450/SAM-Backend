@@ -15,6 +15,7 @@ class PerfSchedulerTask(SchedulerTaskBase):
 
     def run(self):
         print('I|run PerfSchedulerTask')
+        UtilPerfLinux().sample_perf_data()
 
 
 class ViewPerf(ViewBase):
@@ -35,28 +36,26 @@ class ViewPerf(ViewBase):
         if not obj_on_off:
             obj_on_off = PerfConfig(key='on_off', value_int=0)
             session.add(obj_on_off)
-        else:
-            if obj_on_off.value_int != on_off:
-                obj_on_off.value_int = on_off
-                is_on_off_changed = True
+        if obj_on_off.value_int != on_off:
+            obj_on_off.value_int = on_off
+            is_on_off_changed = True
         obj_sampling_rate = session.query(PerfConfig).filter(PerfConfig.key == 'sampling_rate').first()
         is_sampling_rate_changed = False
         if not obj_sampling_rate:
             obj_sampling_rate = PerfConfig(key='sampling_rate', value_int=10)
             session.add(obj_sampling_rate)
-        else:
-            if obj_sampling_rate.value_int != sampling_rate:
-                obj_sampling_rate.value_int = sampling_rate
-                is_sampling_rate_changed = True
+        if obj_sampling_rate.value_int != sampling_rate:
+            obj_sampling_rate.value_int = sampling_rate
+            is_sampling_rate_changed = True
         obj_storage_time = session.query(PerfConfig).filter(PerfConfig.key == 'storage_time').first()
         is_storage_time_changed = False
         if not obj_storage_time:
             obj_storage_time = PerfConfig(key='storage_time', value_int=168)
             session.add(obj_storage_time)
-        else:
-            if obj_storage_time.value_int != storage_time:
-                obj_storage_time.value_int = storage_time
-                is_storage_time_changed = True
+        if obj_storage_time.value_int != storage_time:
+            obj_storage_time.value_int = storage_time
+            is_storage_time_changed = True
+
         session.commit()
         if is_on_off_changed:
             if on_off == 1:
@@ -73,9 +72,9 @@ class ViewPerf(ViewBase):
     def get_perf_config(self):
         session = Session()
         objs = session.query(PerfConfig).filter(PerfConfig.key.in_(['on_off', 'sampling_rate', 'storage_time'])).all()
-        on_off = None
-        sampling_rate = None
-        storage_time = None
+        on_off = 0
+        sampling_rate = 10
+        storage_time = 24*7
         for it in objs:
             if it.key == 'on_off':
                 on_off = it.value_int

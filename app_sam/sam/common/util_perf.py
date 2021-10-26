@@ -1,5 +1,8 @@
+import json
 import os
+import datetime
 from sam.common.res_obj import *
+from sam.model_layer.model import *
 
 
 class UtilPerfLinux:
@@ -45,41 +48,166 @@ class UtilPerfLinux:
                            )
 
     def sample_perf_data(self):
-        # common info
+        # 1 sample data
+        tm = datetime.datetime.now()
+        print("D|tm", tm)
+        # 1.1 summary info
         host_run_time, host_idle_time = self.__get_host_uptime()
-        cpu_count = int(self.__run_shell('cat /proc/cpuinfo | grep "processor" | wc -l'))
         login_user_count = int(self.__run_shell('who | wc -l'))
-        # load info
-        loads, load_level = self.__get_load_info(cpu_count)
-        # process info
-        proc_count, proc_stat_statistics, proc_user_statistics = self.__get_process_info()
-        # cpu info
+        # 1.4 cpu info
         cpu_count, cpu_usage_rate = self.__get_cpu_info()
-        # mem info
-        mem_size, swap_size, _ = self.__get_memory_info()
-        # disk info
-        disk_size, disk_usage, _ = self.__get_disk_info()
-        # net info
+        # 1.2 load info
+        loads, load_level = self.__get_load_info(cpu_count)
+        # 1.3 process info
+        proc_count, proc_stat_statistics, proc_user_statistics = self.__get_process_info()
+        # 1.5 mem info
+        mem_size, swap_size, mem_statistics = self.__get_memory_info()
+        # 1.6 disk info
+        disk_size, disk_usage, disk_io_rate = self.__get_disk_info()
+        # 1.7 net info
         net_usage = self.__get_net_info()
+        # 2 db op
+        session = Session()
+        # 2.1 save host_run_time
+        item = session.query(PerfSummaryValues).filter_by(key=SUMMARY_KEY_HOST_RUN_TIME).first()
+        if item:
+            item.value_int = host_run_time
+        else:
+            item = PerfSummaryValues(key=SUMMARY_KEY_HOST_RUN_TIME, value_int=host_run_time)
+            session.add(item)
+        # 2.2 save host_idle_time
+        item = session.query(PerfSummaryValues).filter_by(key=SUMMARY_KEY_HOST_IDLE_TIME).first()
+        if item:
+            item.value_int = host_idle_time
+        else:
+            item = PerfSummaryValues(key=SUMMARY_KEY_HOST_IDLE_TIME, value_int=host_idle_time)
+            session.add(item)
+        # 2.3 save login_user_count
+        item = session.query(PerfSummaryValues).filter_by(key=SUMMARY_KEY_LOGIN_USER_COUNT).first()
+        if item:
+            item.value_int = login_user_count
+        else:
+            item = PerfSummaryValues(key=SUMMARY_KEY_LOGIN_USER_COUNT, value_int=login_user_count)
+            session.add(item)
+        # 2.4 save loads
+        # 2.4.2 load_level
+        item = session.query(PerfSummaryValues).filter_by(key=SUMMARY_KEY_LOAD_LEVE).first()
+        if item:
+            item.value_int = load_level
+        else:
+            item = PerfSummaryValues(key=SUMMARY_KEY_LOAD_LEVE, value_int=load_level)
+            session.add(item)
+        # 2.4.2 loads
+        item = PerfLoadsHistory(date=tm, one_min=loads[0], five_min=loads[1], fiften_min=loads[2])
+        session.add(item)
+        # 2.5 save proc info
+        # 2.5.1 proc_count
+        item = session.query(PerfSummaryValues).filter_by(key=SUMMARY_KEY_PROC_COUNT).first()
+        if item:
+            item.value_int = proc_count
+        else:
+            item = PerfSummaryValues(key=SUMMARY_KEY_PROC_COUNT, value_int=proc_count)
+            session.add(item)
+        # 2.5.2 proc_stat_statistics
+        item = PerfProcStatDistributionHistory(date=tm, R=proc_stat_statistics['R'],
+                                               S=proc_stat_statistics['S'],
+                                               I=proc_stat_statistics['I'],
+                                               Z=proc_stat_statistics['Z'],
+                                               D=proc_stat_statistics['D'],
+                                               T=proc_stat_statistics['T'],
+                                               P=proc_stat_statistics['P'],
+                                               W=proc_stat_statistics['W'],
+                                               X=proc_stat_statistics['X'],
+                                               H=proc_stat_statistics['<'],
+                                               N=proc_stat_statistics['N'],
+                                               L=proc_stat_statistics['L'],
+                                               thx_father=proc_stat_statistics['s'],
+                                               multi_thx=proc_stat_statistics['l'])
+        session.add(item)
+        # 2.5.3 proc_user_statistics
+        for k in proc_user_statistics:
+            item = PerfProcUserDistributionHistory(date=tm, user_name=k, proc_count=proc_user_statistics[k])
+            session.add(item)
+        # 2.6 save cpu_usage_rate
+        # 2.6.1 cpu count
+        item = session.query(PerfSummaryValues).filter_by(key=SUMMARY_KEY_CPU_COUNT).first()
+        if item:
+            item.value_int = cpu_count
+        else:
+            item = PerfSummaryValues(key=SUMMARY_KEY_CPU_COUNT, value_int=cpu_count)
+            session.add(item)
+        # 2.6.2 cpu_usage_rate
+        for k in cpu_usage_rate:
+            item = PerfCpuUsageRateHistory(date=tm, cpu_name=k, use_rate=cpu_usage_rate[k])
+            session.add(item)
+        # 2.7 save mem info
+        # 2.7.1 save mem size
+        item = session.query(PerfSummaryValues).filter_by(key=SUMMARY_KEY_MEMORY_SIZE).first()
+        if item:
+            item.value_int = mem_size
+        else:
+            item = PerfSummaryValues(key=SUMMARY_KEY_MEMORY_SIZE, value_int=mem_size)
+            session.add(item)
+        # 2.7.2 save swap size
+        item = session.query(PerfSummaryValues).filter_by(key=SUMMARY_KEY_SWAP_SIZE).first()
+        if item:
+            item.value_int = swap_size
+        else:
+            item = PerfSummaryValues(key=SUMMARY_KEY_SWAP_SIZE, value_int=swap_size)
+            session.add(item)
+        # 2.7.3 save mem_statistics
+        print('D| 2.7.3 ', mem_statistics)
+        item = PerfMemUsageHistory(date=tm, mem_use=mem_statistics['Mem:'][0], mem_free=mem_statistics['Mem:'][1],
+                                   mem_buffer=mem_statistics['Mem:'][2], swap_use=mem_statistics['Swap:'][0],
+                                   swap_free=mem_statistics['Swap:'][1])
+        session.add(item)
+        # 2.8 save disk_size, disk_usage, disk_io_rate
+        # 2.8.1 save disk_size
+        item = session.query(PerfSummaryValues).filter_by(key=SUMMARY_KEY_DISK_SIZE).first()
+        if item:
+            item.value_int = disk_size
+        else:
+            item = PerfSummaryValues(key=SUMMARY_KEY_DISK_SIZE, value_int=disk_size)
+            session.add(item)
+        # 2.8.2 disk_usage
+        item = session.query(PerfSummaryValues).filter_by(key=SUMMARY_KEY_DISK_USAGE).first()
+        if item:
+            item.value_str = json.dumps(disk_usage)
+        else:
+            item = PerfSummaryValues(key=SUMMARY_KEY_DISK_USAGE, value_str=json.dumps(disk_usage))
+            session.add(item)
+        # 2.8.3 disk_io_rate
+        for it in disk_io_rate:
+            item = PerfDiskIoRateHistory(date=tm, disk_name=it[0], read_rate=it[1][0], write_rate=it[1][1])
+            session.add(item)
+        # 2.9 save net_usage
+        for it in net_usage:
+            item = PerfNetIoRateHistory(date=tm, net_dev_name=it[0], read_rate=it[1][0], write_rate=it[1][1])
+            session.add(item)
+        # 2.10 save summary
+        item = PerfSummaryHistory(date=tm, proc_count=proc_count, login_user_count=login_user_count)
+        session.add(item)
+        session.commit()
 
     def __get_net_info(self):
         val = self.__run_shell('ifstat')
         net_list = val.split('\n')
         net_list = net_list[3: -1]
         net_usage = []
+        print("D|__get_net_info", net_list)
         for i in range(int(len(net_list) / 2)):
             if not net_list[i * 2]:
                 continue
             it_info = net_list[i * 2].split(' ')
             it_info = [x for x in it_info if x != '']
             print('I|', it_info)
-            net_usage.append([it_info[0], (int(it_info[6]), int(it_info[8]))])
+            net_usage.append([it_info[0], (int(it_info[5]), int(it_info[7]))])
         return net_usage
 
     def __get_disk_info(self):
         val = self.__run_shell('df')
         disk_list = val[val.find('\n') + 1:-1].split('\n')
-        disk_usage = []
+        disk_usage = {}
         disk_size = 0
         for it in disk_list:
             if not it:
@@ -87,7 +215,7 @@ class UtilPerfLinux:
             it_info = it.split(' ')
             it_info = [x for x in it_info if x != '']
             print('I|', it_info)
-            disk_usage.append([it_info[5], (int(it_info[2]), int(it_info[3]))])
+            disk_usage[it_info[5]] = (int(it_info[2]), int(it_info[3]))
             disk_size = disk_size + int(it_info[1])
 
         val = self.__run_shell('iostat')
@@ -110,7 +238,7 @@ class UtilPerfLinux:
         mem_statistics = {}
         mem_size = 0
         swap_size = 0
-        swap_statistics = {}
+        print('D| __get_memory_info ', mem_list)
         for it in mem_list:
             if not it:
                 continue
@@ -122,7 +250,7 @@ class UtilPerfLinux:
                 mem_statistics[it_info[0]] = (int(it_info[2]), int(it_info[3]), int(it_info[5]))
             elif it_info[0] == 'Swap:':
                 swap_size = swap_size + int(it_info[1])
-                swap_statistics[it_info[0]] = (int(it_info[2]), int(it_info[3]))
+                mem_statistics[it_info[0]] = (int(it_info[2]), int(it_info[3]))
         return mem_size, swap_size, mem_statistics
 
     def __get_cpu_info(self):
@@ -131,13 +259,14 @@ class UtilPerfLinux:
         cpu_list = cpu_list[3: -1]
         cpu_usage_rate = {}
         cpu_count = len(cpu_list)
+        print("D|__get_cpu_info ",cpu_list)
         for it in cpu_list:
             if not it:
                 continue
             it_info = it.split(' ')
             print('I|', it_info)
             it_info = [x for x in it_info if x != '']
-            cpu_usage_rate[it_info[2]] = float(cpu_usage_rate.get(it_info[3], 0))
+            cpu_usage_rate[it_info[2]] = float(it_info[3])
         return cpu_count, cpu_usage_rate
 
     def __get_process_info(self):
@@ -158,7 +287,7 @@ class UtilPerfLinux:
             # print('I|', p_info)
             p_info = [x for x in p_info if x != '']
             proc_stat_statistics[p_info[7][0]] = proc_stat_statistics[p_info[7][0]] + 1
-            # proc_user_statistics[p_info[0]] = proc_user_statistics.get(p_info[0], 0) + 1
+            proc_user_statistics[p_info[0]] = proc_user_statistics.get(p_info[0], 0) + 1
         print('status:', proc_stat_statistics, '\nuser:', proc_user_statistics)
 
         return proc_count, proc_stat_statistics, proc_user_statistics
@@ -226,45 +355,45 @@ class UtilPerfLinux:
 
     def get_test_perf_info(self) -> ResPerfInfo:
         perf_info = ResPerfInfo(host_run_time='13h:14m:41s', host_idle_rate=60, login_user_count=3,
-                           load_info=ResLoadInfo(level=1, one_min=[150, 230, 102, 218, 567, 147, 260],
-                                                 five_min=[150, 230, 102, 218, 567, 147, 260],
-                                                 fiften_min=[150, 230, 102, 218, 567, 147, 260]),
-                           proc_info=ResProcInfo(proc_count=20,
-                                                 proc_stat_distribution=[  # 按状态分类统计进程数量历史序列
-                                                     ["Stat", ["10/21 18:56", "10/21 18:57", "10/21 18:58"]],
-                                                     ["T", [12, 17, 5]],
-                                                     ["S", [12, 17, 5]],
-                                                     ["R", [12, 17, 5]],
-                                                 ],
-                                                 proc_user_distribution=[  # 按用户分类统计进程数量历史序列
-                                                     ["User", ["10/21 18:56", "10/21 18:57", "10/21 18:58"]],
-                                                     ["root", [12, 17, 5]],
-                                                     ["mysql", [12, 17, 5]]
-                                                 ]),
-                           cpu_info=ResCpuInfo(cpu_count=8,
-                                               cpu_usage_rate=[  # cpu使用率历史
-                                                   "all", [0.54, 0.22, 0.24],
-                                                   "0", [0.54, 0.22, 0.24],
-                                                   "1", [0.54, 0.22, 0.24],
-                                                   "2", [0.54, 0.22, 0.24],
-                                                   "3", [0.54, 0.22, 0.24]
-                                               ]),
-                           memory_info=ResMemoryInfo(mem_size=1020282828,
-                                                     mem_usage=[[26, 91, 281], [26, 91, 281], [26, 91, 281]],
-                                                     swap_size=1028848,
-                                                     swap_usage=[[26, 91, 281], [26, 91, 281], [26, 91, 281]]),
-                           disk_info=ResDiskInfo(disk_size=10291282,
-                                                 disk_usage=[["xxx1", 2818, 909], ["xxx2", 2818, 909]],
-                                                 disk_io_rate=[  # 磁盘IO速率历史
-                                                     ["IoRate", ["10/21 18:56", "10/21 18:57", "10/21 18:58"]],
-                                                     ["xxx1", [192, 2919, 291], [192, 2919, 291]],
-                                                     ["xxx2", [192, 2919, 291], [192, 2919, 291]]
-                                                 ]),
-                           net_info=ResNetInfo(
-                               net_io_rate=[  # 网络IO速率历史
-                                   ["IoRate", ["10/21 18:56", "10/21 18:57", "10/21 18:58"]],
-                                   ["xxx1", [192, 2919, 291], [192, 2919, 291]],
-                                   ["xxx2", [192, 2919, 291], [192, 2919, 291]]
-                               ])
-                           )
+                                load_info=ResLoadInfo(level=1, one_min=[150, 230, 102, 218, 567, 147, 260],
+                                                      five_min=[150, 230, 102, 218, 567, 147, 260],
+                                                      fiften_min=[150, 230, 102, 218, 567, 147, 260]),
+                                proc_info=ResProcInfo(proc_count=20,
+                                                      proc_stat_distribution=[  # 按状态分类统计进程数量历史序列
+                                                          ["Stat", ["10/21 18:56", "10/21 18:57", "10/21 18:58"]],
+                                                          ["T", [12, 17, 5]],
+                                                          ["S", [12, 17, 5]],
+                                                          ["R", [12, 17, 5]],
+                                                      ],
+                                                      proc_user_distribution=[  # 按用户分类统计进程数量历史序列
+                                                          ["User", ["10/21 18:56", "10/21 18:57", "10/21 18:58"]],
+                                                          ["root", [12, 17, 5]],
+                                                          ["mysql", [12, 17, 5]]
+                                                      ]),
+                                cpu_info=ResCpuInfo(cpu_count=8,
+                                                    cpu_usage_rate=[  # cpu使用率历史
+                                                        "all", [0.54, 0.22, 0.24],
+                                                        "0", [0.54, 0.22, 0.24],
+                                                        "1", [0.54, 0.22, 0.24],
+                                                        "2", [0.54, 0.22, 0.24],
+                                                        "3", [0.54, 0.22, 0.24]
+                                                    ]),
+                                memory_info=ResMemoryInfo(mem_size=1020282828,
+                                                          mem_usage=[[26, 91, 281], [26, 91, 281], [26, 91, 281]],
+                                                          swap_size=1028848,
+                                                          swap_usage=[[26, 91, 281], [26, 91, 281], [26, 91, 281]]),
+                                disk_info=ResDiskInfo(disk_size=10291282,
+                                                      disk_usage=[["xxx1", 2818, 909], ["xxx2", 2818, 909]],
+                                                      disk_io_rate=[  # 磁盘IO速率历史
+                                                          ["IoRate", ["10/21 18:56", "10/21 18:57", "10/21 18:58"]],
+                                                          ["xxx1", [192, 2919, 291], [192, 2919, 291]],
+                                                          ["xxx2", [192, 2919, 291], [192, 2919, 291]]
+                                                      ]),
+                                net_info=ResNetInfo(
+                                    net_io_rate=[  # 网络IO速率历史
+                                        ["IoRate", ["10/21 18:56", "10/21 18:57", "10/21 18:58"]],
+                                        ["xxx1", [192, 2919, 291], [192, 2919, 291]],
+                                        ["xxx2", [192, 2919, 291], [192, 2919, 291]]
+                                    ])
+                                )
         return ResBase(0, data=perf_info)
