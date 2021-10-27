@@ -32,9 +32,10 @@ class ResPerfConfig(JsonObjBase):
 
 
 class ResLoadInfo(JsonObjBase):
-    def __init__(self, level=0, one_min=[], five_min=[], fiften_min=[]):
+    def __init__(self, level=0, date=[], one_min=[], five_min=[], fiften_min=[]):
         super(ResLoadInfo, self).__init__()
         self.level = level
+        self.date = date
         self.one_min = one_min
         self.five_min = five_min
         self.fiften_min = fiften_min
@@ -51,13 +52,14 @@ class ResProcInfo(JsonObjBase):
 class ResCpuInfo(JsonObjBase):
     def __init__(self, cpu_count=0, cpu_usage_rate=[]):
         super(ResCpuInfo, self).__init__()
-        self.proc_count = cpu_count
+        self.cpu_count = cpu_count
         self.cpu_usage_rate = cpu_usage_rate
 
 
 class ResMemoryInfo(JsonObjBase):
-    def __init__(self, mem_size=0, mem_usage=[], swap_size=0, swap_usage=[]):
+    def __init__(self, date=[], mem_size=0, mem_usage=[], swap_size=0, swap_usage=[]):
         super(ResMemoryInfo, self).__init__()
+        self.date = date
         self.mem_size = mem_size
         self.mem_usage = mem_usage
         self.swap_size = swap_size

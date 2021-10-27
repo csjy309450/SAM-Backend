@@ -7,45 +7,264 @@ from sam.model_layer.model import *
 
 class UtilPerfLinux:
     def get_perf_info(self) -> ResPerfInfo:
-        host_run_time, host_idle_time = self.__get_host_uptime()
-        cpu_count = int(self.__run_shell('cat /proc/cpuinfo | grep "processor" | wc -l'))
-        login_user_count = int(self.__run_shell('who | wc -l'))
-        # load
-        loads, load_level = self.__get_load_info(cpu_count)
+        host_run_time = None
+        host_idle_time = None
+        login_user_count = None
+        cpu_count = None
+        load_level = None
+        proc_count = None
+        mem_size = None
+        swap_size = None
+        disk_size = None
+        disk_usage = []
+        session = Session()
+        db_item = session.query(PerfSummaryValues).all()
+        print("T|db_item", db_item)
+        for it in db_item:
+            if it.key == SUMMARY_KEY_HOST_RUN_TIME:
+                host_run_time = it.value_int
+                print('T|host_run_time ', host_run_time)
+            elif it.key == SUMMARY_KEY_HOST_IDLE_TIME:
+                host_idle_time = it.value_int
+                print('T|host_idle_time ', host_idle_time)
+            elif it.key == SUMMARY_KEY_LOGIN_USER_COUNT:
+                login_user_count = it.value_int
+                print('T|login_user_count ', login_user_count)
+            elif it.key == SUMMARY_KEY_CPU_COUNT:
+                cpu_count = it.value_int
+                print('T|cpu_count ', cpu_count)
+            elif it.key == SUMMARY_KEY_LOAD_LEVE:
+                load_level = it.value_int
+                print('T|load_level ', load_level)
+            elif it.key == SUMMARY_KEY_PROC_COUNT:
+                proc_count = it.value_int
+                print('T|proc_count ', proc_count)
+            elif it.key == SUMMARY_KEY_MEMORY_SIZE:
+                mem_size = it.value_int
+                print('T|mem_size ', mem_size)
+            elif it.key == SUMMARY_KEY_SWAP_SIZE:
+                swap_size = it.value_int
+                print('T|swap_size ', swap_size)
+            elif it.key == SUMMARY_KEY_DISK_SIZE:
+                disk_size = it.value_int
+                print('T|disk_size ', disk_size)
+            elif it.key == SUMMARY_KEY_DISK_USAGE:
+                disk_usage = json.loads(it.value_str)
+                print('T|disk_usage ', disk_usage)
+        str_runtime = '' if not host_run_time else self.__get_runtime_str(int(host_run_time))
+        print("T|str_runtime", str_runtime)
+        host_idle_rate = None if not host_idle_time and not host_run_time else int(
+            host_idle_time / (host_run_time * cpu_count) * 100)
+        print("T|host_idle_rate", host_idle_rate)
+
+        # get loads
+        '''TODO [BUG] 时间获取应该是获取最近30个采样'''
+        last_30_loads_date = session.query(PerfLoadsHistory.date).order_by(
+            PerfLoadsHistory.date.desc()).distinct().limit(
+            30).all()
+        last_30_loads_date = [i[0] for i in last_30_loads_date]
+        last_30_loads_date.sort()
+        print('T|last_30_loads_date ', last_30_loads_date)
+        last_30_loads = session.query(PerfLoadsHistory).filter(PerfLoadsHistory.date.in_(last_30_loads_date)).all()
+        print('T|last_30_loads ', last_30_loads)
+        date = []
+        one_min = []
+        five_min = []
+        fiften_min = []
+        for it in last_30_loads:
+            date.append(it.date.strftime('%c'))
+            one_min.append(it.one_min)
+            five_min.append(it.five_min)
+            fiften_min.append(it.fiften_min)
+        one_min = [0] * (len(date) - len(one_min)) + one_min
+        five_min = [0] * (len(date) - len(five_min)) + five_min
+        fiften_min = [0] * (len(date) - len(fiften_min)) + fiften_min
         load_info = ResLoadInfo(
-            level=load_level
+            level=load_level,
+            date=date,
+            one_min=one_min,
+            five_min=one_min,
+            fiften_min=one_min
         )
-        # process
-        proc_count, proc_stat_statistics, proc_user_statistics = self.__get_process_info()
+
+        # get process
+        # last_30_proc_stat
+        last_30_proc_stat_date = session.query(PerfProcStatDistributionHistory.date).order_by(
+            PerfProcStatDistributionHistory.date.desc()).distinct().limit(
+            30).all()
+        last_30_proc_stat_date = [i[0] for i in last_30_proc_stat_date]
+        last_30_proc_stat_date.sort()
+        print('T|last_30_loads_date ', last_30_proc_stat_date)
+        last_30_proc_stat = session.query(PerfProcStatDistributionHistory).filter(
+            PerfProcStatDistributionHistory.date.in_(last_30_proc_stat_date)).all()
+        print('T|last_30_proc_stat ', last_30_proc_stat)
+        proc_stat_distribution = [
+            ["Stat", []],
+            ["T", []],
+            ["S", []],
+            ["I", []],
+            ["Z", []],
+            ["D", []],
+            ["P", []],
+            ["W", []],
+            ["X", []],
+            ["<", []],
+            ["N", []],
+            ["L", []],
+            ["s", []],
+            ["l", []]
+        ]
+        for it in last_30_proc_stat:
+            proc_stat_distribution[0][1].append(it.date.strftime('%c'))
+            proc_stat_distribution[1][1].append(it.T)
+            proc_stat_distribution[2][1].append(it.S)
+            proc_stat_distribution[3][1].append(it.I)
+            proc_stat_distribution[4][1].append(it.Z)
+            proc_stat_distribution[5][1].append(it.D)
+            proc_stat_distribution[6][1].append(it.P)
+            proc_stat_distribution[7][1].append(it.W)
+            proc_stat_distribution[8][1].append(it.X)
+            proc_stat_distribution[9][1].append(it.H)
+            proc_stat_distribution[10][1].append(it.N)
+            proc_stat_distribution[11][1].append(it.L)
+            proc_stat_distribution[12][1].append(it.thx_father)
+            proc_stat_distribution[13][1].append(it.multi_thx)
+        for it in proc_stat_distribution:
+            it[1] = [0] * (len(last_30_proc_stat_date) - len(it[1])) + it[1]
+        # proc_user_distribution
+        last_30_proc_user_date = session.query(PerfProcUserDistributionHistory.date).order_by(
+            PerfProcUserDistributionHistory.date.desc()).distinct().limit(
+            30).all()
+        last_30_proc_user_date = [i[0] for i in last_30_proc_user_date]
+        last_30_proc_user_date.sort()
+        print('T|last_30_proc_user_date ', last_30_proc_user_date)
+        last_30_proc_user = session.query(PerfProcUserDistributionHistory).filter(
+            PerfProcStatDistributionHistory.date.in_(last_30_proc_user_date)).all()
+        print('T|last_30_proc_user ', last_30_proc_user)
+        proc_user_distribution = {}
+        proc_user_distribution['User'] = [i.strftime('%c') for i in last_30_proc_user_date]
+        for it in last_30_proc_user:
+            if it.user_name not in proc_user_distribution:
+                proc_user_distribution[it.user_name] = []
+            proc_user_distribution[it.user_name].append(it.proc_count)
+        for it in proc_user_distribution:
+            proc_user_distribution[it] = [0] * (len(last_30_proc_user_date) - len(proc_user_distribution[it])) + \
+                                         proc_user_distribution[it]
         proc_info = ResProcInfo(
-            proc_count=proc_count
+            proc_count=proc_count,
+            proc_stat_distribution=proc_stat_distribution,
+            proc_user_distribution=proc_user_distribution
         )
+
         # cpu
-        # self.__get_cpu_info()
+        last_30_cpu_date = session.query(PerfCpuUsageRateHistory.date).order_by(
+            PerfCpuUsageRateHistory.date.desc()).distinct().limit(
+            30).all()
+        last_30_cpu_date = [i[0] for i in last_30_cpu_date]
+        last_30_cpu_date.sort()
+        print('T|last_30_cpu_date ', last_30_cpu_date)
+        last_30_cpu_usage = session.query(PerfCpuUsageRateHistory).filter(
+            PerfCpuUsageRateHistory.date.in_(last_30_cpu_date)).all()
+        print('T|last_30_cpu_usage ', last_30_cpu_usage)
+        cpu_usage_rate = {}
+        cpu_usage_rate['Cpu'] = [i.strftime('%c') for i in last_30_cpu_date]
+        for it in last_30_cpu_usage:
+            if it.cpu_name not in last_30_cpu_usage:
+                cpu_usage_rate[it.cpu_name] = []
+            cpu_usage_rate[it.cpu_name].append(it.use_rate)
+        for it in cpu_usage_rate:
+            cpu_usage_rate[it] = [0] * (len(last_30_cpu_date) - len(cpu_usage_rate[it])) + \
+                                 cpu_usage_rate[it]
+        cpu_info = ResCpuInfo(
+            cpu_count=cpu_count,
+            cpu_usage_rate=cpu_usage_rate
+        )
 
         # mem
-        mem_size, swap_size, _ = self.__get_memory_info()
+        last_30_mem_usage_date = session.query(PerfMemUsageHistory.date).order_by(
+            PerfMemUsageHistory.date.desc()).distinct().limit(
+            30).all()
+        last_30_mem_usage_date = [i[0] for i in last_30_mem_usage_date]
+        last_30_mem_usage_date.sort()
+        print('T|last_30_mem_usage_date ', last_30_mem_usage_date)
+        last_30_mem_usage = session.query(PerfMemUsageHistory).filter(
+            PerfMemUsageHistory.date.in_(last_30_mem_usage_date)).all()
+        print('T|last_30_mem_usage ', last_30_mem_usage)
+        date = []
+        mem_usage = []
+        swap_usage = []
+        for it in last_30_mem_usage:
+            date.append(it.date.strftime('%c'))
+            mem_usage.append([it.mem_use, it.mem_free, it.mem_buffer])
+            swap_usage.append([it.swap_use, it.swap_free])
         memory_info = ResMemoryInfo(
+            date=date,
             mem_size=mem_size,
-            swap_size=swap_size
+            mem_usage=mem_usage,
+            swap_size=swap_size,
+            swap_usage=swap_usage
         )
+
         # disk
-        disk_size, disk_usage, _ = self.__get_disk_info()
+        last_30_disk_io_rate_date = session.query(PerfDiskIoRateHistory.date).order_by(
+            PerfDiskIoRateHistory.date.desc()).distinct().limit(
+            30).all()
+        last_30_disk_io_rate_date = [i[0] for i in last_30_disk_io_rate_date]
+        last_30_disk_io_rate_date.sort()
+        print('T|last_30_disk_io_rate_date ', last_30_disk_io_rate_date)
+        last_30_disk_io_rate = session.query(PerfDiskIoRateHistory).filter(
+            PerfDiskIoRateHistory.date.in_(last_30_disk_io_rate_date)).all()
+        print('T|last_30_disk_io_rate ', last_30_disk_io_rate)
+        date = []
+        disk_io_rate = {}
+        for it in last_30_disk_io_rate:
+            date.append(it.date.strftime("%c"))
+            if it.disk_name not in disk_io_rate:
+                disk_io_rate[it.disk_name] = []
+            disk_io_rate[it.disk_name].append([it.read_rate, it.write_rate])
+        for it in disk_io_rate:
+            disk_io_rate[it] = [[0.0, 0.0]] * (len(date) - len(disk_io_rate[it])) + disk_io_rate[it]
+        disk_io_rate['IoRate'] = date
         disk_info = ResDiskInfo(
             disk_size=disk_size,
             disk_usage=disk_usage
         )
-        # net
 
-        return ResPerfInfo(0,
-                           host_run_time=self.__get_runtime_str(int(host_run_time)),
-                           host_idle_rate=int(host_idle_time / (host_run_time * cpu_count) * 100),
-                           login_user_count=login_user_count,
-                           load_info=load_info,
-                           proc_info=proc_info,
-                           memory_info=memory_info,
-                           disk_info=disk_info
-                           )
+        # net
+        last_30_net_io_rate_date = session.query(PerfNetIoRateHistory.date).order_by(
+            PerfNetIoRateHistory.date.desc()).distinct().limit(
+            30).all()
+        last_30_net_io_rate_date = [i[0] for i in last_30_net_io_rate_date]
+        last_30_net_io_rate_date.sort()
+        print('T|last_30_net_io_rate_date ', last_30_net_io_rate_date)
+        last_30_net_io_rate = session.query(PerfNetIoRateHistory).filter(
+            PerfNetIoRateHistory.date.in_(last_30_net_io_rate_date)).all()
+        print('T|last_30_net_io_rate ', last_30_net_io_rate)
+        date = []
+        net_io_rate = {}
+        for it in last_30_net_io_rate:
+            date.append(it.date.strftime("%c"))
+            if it.net_dev_name not in net_io_rate:
+                net_io_rate[it.net_dev_name] = []
+            net_io_rate[it.net_dev_name].append([it.read_rate, it.write_rate])
+        for it in net_io_rate:
+            net_io_rate[it] = [[0.0, 0.0]] * (len(date) - len(net_io_rate[it])) + net_io_rate[it]
+        net_io_rate['IoRate'] = date
+        net_info = ResNetInfo(
+            net_io_rate=net_io_rate
+        )
+
+        # perf info
+        perf_info = ResPerfInfo(host_run_time=str_runtime,
+                                host_idle_rate=host_idle_rate,
+                                login_user_count=login_user_count,
+                                load_info=load_info,
+                                cpu_info=cpu_info,
+                                proc_info=proc_info,
+                                memory_info=memory_info,
+                                disk_info=disk_info,
+                                net_info=net_info)
+        return ResBase(0, data=perf_info)
 
     def sample_perf_data(self):
         # 1 sample data
@@ -259,7 +478,7 @@ class UtilPerfLinux:
         cpu_list = cpu_list[3: -1]
         cpu_usage_rate = {}
         cpu_count = len(cpu_list)
-        print("D|__get_cpu_info ",cpu_list)
+        print("D|__get_cpu_info ", cpu_list)
         for it in cpu_list:
             if not it:
                 continue
@@ -335,7 +554,7 @@ class UtilPerfLinux:
                         year = int(value / 356)
         s_runtime = str(sec) + 's'
         if min > 0:
-            s_runtime = str(min) + 'm'
+            s_runtime = str(min) + 'm:' + s_runtime
             if hour > 0:
                 s_runtime = str(hour) + 'h:' + s_runtime
                 if day > 0:
