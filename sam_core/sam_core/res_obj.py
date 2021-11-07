@@ -1,9 +1,11 @@
 STATUS_NO_ERROR = 0
 STATUS_KNOWN = 1
+STATUS_API_DISABLED = 2
 
 g_error_code = {
     STATUS_NO_ERROR: {'ch': '成功', 'en': 'succeed'},
-    STATUS_KNOWN: {'ch': '未知错误', 'en': 'unknown error'}
+    STATUS_KNOWN: {'ch': '未知错误', 'en': 'unknown error'},
+    STATUS_API_DISABLED: {'ch': 'API不可用', 'en': 'api disabled'}
 }
 
 
@@ -82,11 +84,16 @@ class ResNetInfo(JsonObjBase):
 
 class ResPerfInfo(JsonObjBase):
     def __init__(self,
-                 host_run_time='', host_idle_rate=0, login_user_count=0,
+                 host_run_time='', avg_login_user_count=0, history_proc_count=[], history_login_user_count=[],
+                 avg_proc_count=0, host_idle_rate=0, login_user_count=0,
                  load_info=ResLoadInfo(), proc_info=ResProcInfo(), cpu_info=ResCpuInfo(),
                  memory_info=ResMemoryInfo(), disk_info=ResDiskInfo(), net_info=ResNetInfo()):
         super(ResPerfInfo, self).__init__()
         self.host_run_time = host_run_time
+        self.avg_proc_count = avg_proc_count
+        self.history_proc_count = history_proc_count
+        self.history_login_user_count = history_login_user_count
+        self.avg_login_user_count = avg_login_user_count
         self.host_idle_rate = host_idle_rate
         self.login_user_count = login_user_count
         self.load_info = load_info

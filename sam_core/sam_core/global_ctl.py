@@ -1,11 +1,11 @@
 import sys
 import os
-from sam.model_layer.model import Session, engine, Base, PerfConfig
+from sam_app.model_layer.model import Session, engine, Base, PerfConfig
 from sqlalchemy import inspect
-from sam.common.util_tasks import SchedulerTaskQueue, SchedulerTaskBase, ImmediateTaskQueue
-from sam.view_layer.view_perf import PerfSchedulerTask
+from sam_core.utils_tasks import SchedulerTaskQueue, SchedulerTaskBase, ImmediateTaskQueue
+from sam_app.view_layer.view_perf import PerfSchedulerTask
 
-SAM_DB_NAME = 'sam.db'
+SAM_DB_NAME = 'sam_app.db'
 SAM_PWD = os.getcwd()
 
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean
 
-engine = create_engine('sqlite:///sam.db', echo=True)
+engine = create_engine('sqlite:///sam_app.db', echo=True)
 Session = sessionmaker(bind=engine)  # create session
 Base = declarative_base()
 

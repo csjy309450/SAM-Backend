@@ -1,8 +1,8 @@
 import json
 import os
 import datetime
-from sam.common.res_obj import *
-from sam.model_layer.model import *
+from sam_core.res_obj import *
+from sam_app.model_layer.model import *
 
 
 class UtilPerfLinux:
@@ -58,7 +58,7 @@ class UtilPerfLinux:
         print("T|host_idle_rate", host_idle_rate)
 
         # get loads
-        '''TODO [BUG] 时间获取应该是获取最近30个采样'''
+        '''时间获取获取最近30个采样'''
         last_30_loads_date = session.query(PerfLoadsHistory.date).order_by(
             PerfLoadsHistory.date.desc()).distinct().limit(
             30).all()
@@ -254,16 +254,44 @@ class UtilPerfLinux:
             net_io_rate=net_io_rate
         )
 
+        last_30_summary_date = session.query(PerfSummaryHistory.date).order_by(
+            PerfSummaryHistory.date.desc()).distinct().limit(
+            30).all()
+        last_30_summary_date = [i[0] for i in last_30_summary_date]
+        last_30_summary_date.sort()
+        print('T|last_30_summary_date ', last_30_summary_date)
+        last_30_summary = session.query(PerfSummaryHistory).filter(
+            PerfSummaryHistory.date.in_(last_30_summary_date)).all()
+        print('T|last_30_summary ', last_30_summary)
+        sum_proc_count = 0
+        sum_login_user_count = 0
+        history_proc_count = [[],[]]
+        history_login_user_count = [[],[]]
+        for it in last_30_summary:
+            sum_proc_count = sum_proc_count + it.proc_count
+            sum_login_user_count = sum_login_user_count + it.login_user_count
+            history_proc_count[0].append(it.date.strftime("%c"))
+            history_proc_count[1].append(it.proc_count)
+            history_login_user_count[0].append(it.date.strftime("%c"))
+            history_login_user_count[1].append(it.login_user_count)
+        avg_proc_count = sum_proc_count / len(last_30_summary) if len(last_30_summary) > 0 else 0
+        avg_login_user_count = sum_login_user_count / len(last_30_summary) if len(last_30_summary) > 0 else 0
+
         # perf info
-        perf_info = ResPerfInfo(host_run_time=str_runtime,
-                                host_idle_rate=host_idle_rate,
-                                login_user_count=login_user_count,
-                                load_info=load_info,
-                                cpu_info=cpu_info,
-                                proc_info=proc_info,
-                                memory_info=memory_info,
-                                disk_info=disk_info,
-                                net_info=net_info)
+        perf_info = ResPerfInfo(
+            host_run_time=str_runtime,
+            avg_proc_count=avg_proc_count,
+            history_proc_count=history_proc_count,
+            avg_login_user_count=avg_login_user_count,
+            history_login_user_count=history_login_user_count,
+            host_idle_rate=host_idle_rate,
+            login_user_count=login_user_count,
+            load_info=load_info,
+            cpu_info=cpu_info,
+            proc_info=proc_info,
+            memory_info=memory_info,
+            disk_info=disk_info,
+            net_info=net_info)
         return ResBase(0, data=perf_info)
 
     def sample_perf_data(self):
@@ -420,7 +448,29 @@ class UtilPerfLinux:
             it_info = net_list[i * 2].split(' ')
             it_info = [x for x in it_info if x != '']
             print('I|', it_info)
-            net_usage.append([it_info[0], (int(it_info[5]), int(it_info[7]))])
+            read_byte = 0
+            if it_info[5][-1] == 'K':
+                read_byte = int(it_info[5][:-1]) * 1024
+                pass
+            elif it_info[5][-1] == 'M':
+                read_byte = int(it_info[5][:-1]) * 1024 * 1024
+                pass
+            elif it_info[5][-1] == 'G':
+                read_byte = int(it_info[5][:-1]) * 1024 * 1024 * 1024
+            else:
+                read_byte = int(it_info[5])
+            write_byte = 0
+            if it_info[5][-1] == 'K':
+                write_byte = int(it_info[7][:-1]) * 1024
+                pass
+            elif it_info[5][-1] == 'M':
+                write_byte = int(it_info[7][:-1]) * 1024 * 1024
+                pass
+            elif it_info[5][-1] == 'G':
+                write_byte = int(it_info[7][:-1]) * 1024 * 1024 * 1024
+            else:
+                write_byte = int(it_info[7])
+            net_usage.append([it_info[0], (read_byte, write_byte)])
         return net_usage
 
     def __get_disk_info(self):
@@ -552,15 +602,15 @@ class UtilPerfLinux:
                     day = value % 356
                     if value > 356:
                         year = int(value / 356)
-        s_runtime = str(sec) + 's'
+        s_runtime = str(sec) + '秒'
         if min > 0:
-            s_runtime = str(min) + 'm:' + s_runtime
+            s_runtime = str(min) + '分' + s_runtime
             if hour > 0:
-                s_runtime = str(hour) + 'h:' + s_runtime
+                s_runtime = str(hour) + '时' + s_runtime
                 if day > 0:
-                    s_runtime = str(day) + 'd:' + s_runtime
+                    s_runtime = str(day) + '日' + s_runtime
                     if year > 0:
-                        s_runtime = str(year) + 'y:' + s_runtime
+                        s_runtime = str(year) + '年' + s_runtime
         return s_runtime
 
     def __get_host_uptime(self) -> (float, float):

@@ -1,10 +1,10 @@
 import json
 from pyramid.response import Response
-from sam.view_layer.view_base import ViewBase
-from sam.common.res_obj import *
-from sam.common.util_perf import UtilPerfLinux
-from sam.model_layer.model import PerfConfig, Session
-from sam.common.util_tasks import SchedulerTaskQueue, SchedulerTaskBase
+from sam_core.view_base import ViewBase
+from sam_core.res_obj import *
+from sam_core.utils_perf import UtilPerfLinux
+from sam_app.model_layer.model import PerfConfig, Session
+from sam_core.utils_tasks import SchedulerTaskQueue, SchedulerTaskBase
 
 
 class PerfSchedulerTask(SchedulerTaskBase):
