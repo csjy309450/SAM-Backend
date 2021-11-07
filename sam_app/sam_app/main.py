@@ -19,6 +19,8 @@ def main():
             config.add_route('perf_info', '/perf/info')
             config.add_route('perf_config', '/perf/config')
 
+        config.add_static_view(name='/', path='/opt/SAM/www/static/')
+
         config.add_view(ViewHelloWorld, attr='get_hello', route_name='hello', request_method='GET', renderer='json')
         config.add_view(ViewLogin, attr='post_login_account', route_name='login_account', request_method='POST',
                         renderer='json')

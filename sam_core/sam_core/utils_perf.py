@@ -242,8 +242,9 @@ class UtilPerfLinux:
         print('T|last_30_net_io_rate ', last_30_net_io_rate)
         date = []
         net_io_rate = {}
+        for it in last_30_net_io_rate_date:
+            date.append(it.strftime("%c"))
         for it in last_30_net_io_rate:
-            date.append(it.date.strftime("%c"))
             if it.net_dev_name not in net_io_rate:
                 net_io_rate[it.net_dev_name] = []
             net_io_rate[it.net_dev_name].append([it.read_rate, it.write_rate])
